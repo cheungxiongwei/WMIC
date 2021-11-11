@@ -1,38 +1,17 @@
-﻿#ifndef WMIC_H
-#define WMIC_H
+#pragma once
 
-#include <Windows.h>
-#include <comdef.h>
-#include <Wbemidl.h>
-
-//stl
-#include <iostream>
+#include <cmath>
+#include <memory>
 #include <string>
 #include <vector>
-#include <map>
-#include <sstream>
-
-#pragma comment(lib, "wbemuuid.lib")
-
-//WMIC_ERROR start
-class WMIC_ERROR : public std::exception
-{
-public:
-    WMIC_ERROR(const char * message);
-    WMIC_ERROR(const std::string message);
-    virtual char const * what() const;
-private:
-    std::string m_message;
-};
-//WMIC_ERROR end
 
 /*!
 WMI所有类别
 https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
 https://docs.microsoft.com/en-us/windows/win32/wmisdk/wmi-start-page
 
-wmi 测试器
-wbemtest.exe
+wmi Windows自带测试程序
+C:\Windows\System32\wbem\wbemtest.exe
 SELECT * FROM [ClassName]
 SELECT * FROM Win32_VideoController
 */
@@ -119,32 +98,32 @@ struct WMIC_OperatingSystem
     std::wstring serialNumber;
 };
 
+class WMICException : public std::exception
+{
+public:
+    explicit WMICException(const char* message);
+    explicit WMICException(const std::string message);
+    virtual char const* what() const override;
+private:
+    std::string mMessage;
+};
+
 class WMIC
 {
 public:
-    WMIC();
+    explicit WMIC();
     ~WMIC();
-    void sysinfo();
     WMIC_OperatingSystem OperatingSystem();//系统
     std::vector<WMIC_VideoController> VideoController();//显卡
     std::vector<WMIC_DiskDrive> DiskDrive();//硬盘
     WMIC_BaseBoard BaseBoard();//主板
-    WMIC_BIOS BIOS();
+    WMIC_BIOS BIOS();//主板BIOS
     std::vector<WMIC_PhysicalMemory> PhysicalMemory();//内存条
     std::vector<WMIC_Processor> Processor();//cpu处理器
     std::vector<WMIC_NetworkAdapter> NetworkAdapter();//网络适配器
 private:
-    IEnumWbemClassObject *ExecQuery(const std::wstring className);
-private:
-    HRESULT hResult;
-    std::stringstream message;
-    IWbemLocator *pLoc = NULL;
-    IWbemServices *pSvc = NULL;
+    std::unique_ptr<struct WMICContext> pCtx;
 private:
     WMIC(const WMIC&) = delete;
     WMIC& operator = (const WMIC&) = delete;
 };
-
-
-
-#endif // WMIC_H
