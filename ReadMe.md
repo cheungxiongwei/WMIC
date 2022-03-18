@@ -1,4 +1,4 @@
-#WMIC
+# WMIC
 
 wmic 是一款获取PC电脑相关硬件信息的程序，使用 wmi com c++ 编写。
 
