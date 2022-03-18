@@ -58,6 +58,7 @@ for v in mac_address :
 id = id & 0x1fffffff
 
 print("uid:",id)
+# uid: 331712171
 ```
 
 ### 原理
