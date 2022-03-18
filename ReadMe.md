@@ -13,6 +13,19 @@ wmic 是一款获取PC电脑相关硬件信息的程序，使用 wmi com c++ 编
 
 以及以下软件信息：
 * 电脑系统
+### 获取用户电脑唯一ID
+```python
+# 例如使用网卡地址生成唯一ID
+mac_address = {0x00,0xf1,0xf3,0x86,0xc5,0xaa}
+
+id = 0
+for v in mac_address :
+    id = (id << 8) | v
+
+id = id & 0x1fffffff
+
+print("uid:",id)
+```
 
 ### 使用示例
 ```c++
