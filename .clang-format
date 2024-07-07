@@ -1,0 +1,148 @@
+# Generated from CLion C/C++ Code Style settings
+---
+Language: Cpp
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+
+# struct 对齐 clang-format 13
+# AlignArrayOfStructures:Left
+
+# 对齐
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveBitFields: Consecutive
+AlignConsecutiveDeclarations: None
+AlignConsecutiveMacros: Consecutive
+AlignEscapedNewlines: Left
+AlignOperands: DontAlign
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# 单行
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: Inline
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+AttributeMacros: [ '__capability', '__output', '__ununsed' ]
+BinPackArguments: false
+BinPackParameters: false
+BitFieldColonSpacing: Both
+
+# 大括号样式设置
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: true
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: true
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+BreakBeforeBinaryOperators: None
+BreakBeforeConceptDeclarations: false
+BreakBeforeTernaryOperators: false
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: AfterColon
+BreakStringLiterals: false
+ColumnLimit: 640
+CommentPragmas: ''
+CompactNamespaces: false
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
+Cpp11BracedListStyle: true
+DeriveLineEnding: true
+DerivePointerAlignment: true
+DisableFormat: false
+# clang-format 13
+# EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: Always
+FixNamespaceComments: true
+ForEachMacros: [ ]
+# clang-format 13
+# IfMacros: []
+IncludeBlocks: Merge
+# 可使用 IncludeCategories 指定排序优先级
+# clang-format 13
+# IndentAccessModifiers: false
+IndentCaseBlocks: false
+IndentCaseLabels: true
+IndentExternBlock: Indent
+IndentGotoLabels: false
+IndentPPDirectives: BeforeHash
+# clang-format 15
+# IndentRequiresClause: false
+IndentWidth: 4
+IndentWrappedFunctionNames: false
+# clang-format 15
+# InsertBraces: false
+InsertTrailingCommas: None
+KeepEmptyLinesAtTheStartOfBlocks: false
+# clang-format 13
+LambdaBodyIndentation: Signature
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: Inner
+# clang-format 13
+# PPIndentWidth: 2
+# clang-format 14
+# PackConstructorInitializers: NextLine
+PointerAlignment: Left
+# clang-format 14
+# QualifierAlignment: Leave
+# clang-format 13
+# ReferenceAlignment: Left
+ReflowComments: false
+# clang-format 14
+# RemoveBracesLLVM: false
+# clang-format 15
+# RequiresClausePosition: OwnLine
+# clang-format 14
+SeparateDefinitionBlocks: Always
+# clang-format 13
+# ShortNamespaceLines: 0
+SortIncludes: Never
+SortUsingDeclarations: true
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceAroundPointerQualifiers: Default
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: Never
+SpaceBeforeRangeBasedForLoopColon: false
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyBlock: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInConditionalStatement: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+Standard: c++20
+StatementAttributeLikeMacros: [ emit ]
+StatementMacros: [ Q_UNUSED ]
+TabWidth: 2
+TypenameMacros: [ ]
+UseCRLF: false
+UseTab: Never
+WhitespaceSensitiveMacros: [ ]

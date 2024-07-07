@@ -1,3 +1,6 @@
 .vs
-WMI.pro.user
-WMI.vcxproj.user
+.idea
+x64
+WMIC.vcxproj.user
+out
+cmake-build-*
