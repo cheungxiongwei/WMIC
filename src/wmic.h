@@ -17,6 +17,9 @@ WMI所有类别
 https://docs.microsoft.com/en-us/previous-versions//aa394084(v=vs.85)?redirectedfrom=MSDN
 https://docs.microsoft.com/en-us/windows/win32/wmisdk/wmi-start-page
 
+UEFI Non-Volatile Random-Access Memory(NVRAM)
+https://learn.microsoft.com/en-us/windows/win32/sysinfo/access-uefi-firmware-variables-from-a-universal-windows-app
+
 wmi Windows自带测试程序
 C:\Windows\System32\wbem\wbemtest.exe
 SELECT * FROM [ClassName]
@@ -68,7 +71,7 @@ struct WMIC_Processor {
     std::wstring desc;            // Description
     std::wstring manufacturer;    // 生产厂商
     std::uint32_t numberOfCores;  // CPU核心数量
-    std::wstring processID;       // 处理器ID
+    std::wstring processorId;     // 处理器ID
     std::uint32_t threadCount;    // 线程数量
     std::double_t maxClockSpeed;  // 最大时钟频率 GHz
 };
@@ -130,10 +133,34 @@ public:
     WMIC_BIOS BIOS();                                     // 主板BIOS
     std::vector<WMIC_PhysicalMemory> PhysicalMemory();    // 内存条
     std::vector<WMIC_Processor> Processor();              // cpu处理器
-    std::vector<WMIC_NetworkAdapter> NetworkAdapter();//网络适配器
+    std::vector<WMIC_NetworkAdapter> NetworkAdapter();    // 网络适配器
+
 private:
     std::unique_ptr<struct WMICContext> pCtx;
+
 private:
-    WMIC(const WMIC&) = delete;
-    WMIC& operator = (const WMIC&) = delete;
+    WMIC(const WMIC &)            = delete;
+    WMIC &operator=(const WMIC &) = delete;
 };
+
+typedef struct alignas(sizeof(void *)) uid_meta_t {
+    uint32_t uid;                // 用户标识符/许可证唯一ID
+    uint8_t license_key[32];     // 许可证密钥
+    uint64_t issue_date;         // 许可证发布日期（UNIX时间戳）
+    uint64_t expiry_date;        // 许可证过期日期（UNIX时间戳）
+    uint32_t version;            // 许可证版本号
+    uint32_t features_mask;      // 功能权限位掩码
+    uint16_t max_devices;        // 允许激活的最大设备数量
+    uint16_t current_devices;    // 当前已激活的设备数量
+    uint8_t name[64];            // 客户名称
+    uint8_t email[128];          // 客户电子邮件
+    uint8_t license_type;        // 许可证类型（试用版、专业版、企业版等）
+    uint8_t status;              // 许可状态（有效、暂停、已撤销等）
+    uint8_t activation_count;    // 激活次数
+    uint8_t hash_signature[64];  // 许可证数据的加密签名，用于验证完整性
+    uint8_t reserved[32];        // 保留字段，用于将来扩展
+} uid_meta_t;
+
+bool wmicUefiRead(uint32_t uid, void *data, int len);
+
+bool wmicUefiWrite(uint32_t uid, void *data, int len);

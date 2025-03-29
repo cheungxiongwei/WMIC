@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.28.0)
-project(WMIC)
+cmake_minimum_required(VERSION 3.30)
+project(WMIC
+        VERSION 1.0.0.0
+        DESCRIPTION "WMIC retrieves hardware info, generates fingerprints, and manages storage."
+        HOMEPAGE_URL "https://github.com/cheungxiongwei/WMIC"
+        LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(SOURCE_FILES main.cpp wmic.cpp)
-set(HEADER_FILES wmic.h)
-
-add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+add_subdirectory(src)

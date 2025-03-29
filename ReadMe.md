@@ -51,7 +51,7 @@ int main() {
 
 ### 应用场景
 
-硬件指纹 - 根据一系列的硬件特征信息生产一个唯一的指纹信息应用于 软件许可限制
+硬件指纹(Hardware fingerprint) - 根据一系列的硬件特征信息生产一个唯一的指纹信息应用于 软件许可限制
 
 获取用户电脑唯一ID
 
@@ -67,6 +67,27 @@ id = id & 0x1fffffff
 
 print("uid:", id)
 # uid: 331712171
+```
+
+持久化
+通过 UEFI Non-Volatile Random-Access Memory(NVRAM) 进行存储，断电不丢失信息。
+
+读取 uid 和 写入 uid，并写入用户自定义的 meta 信息(软件注册时间，软件到期时间)结构，实现 Software License。
+
+```c++
+// UEFI SDRAM 读写
+// 注意:此功能需要以管理员权限运行, 否则会失败.
+
+uid_meta_t data = {};
+
+// 读取硬件指纹
+std::println("{:s}", wmicUefiRead(uid, &data, sizeof(uid_meta_t)));
+std::println("UEFI SDRAM UID:{}", data.uid);
+
+// 存储硬件指纹信息
+// 填充数据
+data.uid = uid;
+std::println("{:s}", wmicUefiWrite(uid, &data, sizeof(uid_meta_t)));
 ```
 
 ### 原理

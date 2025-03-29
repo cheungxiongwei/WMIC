@@ -586,9 +586,9 @@ std::vector<WMIC_Processor> WMIC::Processor() {
         }
         VariantClear(&vtProp);
 
-        hr = pclsObj->Get(L"ProcessId", 0, &vtProp, 0, 0);
+        hr = pclsObj->Get(L"ProcessorId", 0, &vtProp, 0, 0);
         if(SUCCEEDED(hr) && (V_VT(&vtProp) == VT_BSTR)) {
-            processor.processID = vtProp.bstrVal;
+            processor.processorId = vtProp.bstrVal;
         }
         VariantClear(&vtProp);
 
@@ -606,7 +606,7 @@ std::vector<WMIC_Processor> WMIC::Processor() {
         std::print("{}\t", W2A(processor.manufacturer));
         std::print("{}\t", processor.numberOfCores);
         std::print("{}\t", processor.threadCount);
-        std::print("{}\t", W2A(processor.processID));
+        std::print("{}\t", W2A(processor.processorId));
         std::println("{} GHz\t", processor.maxClockSpeed);
 #endif
 
@@ -684,4 +684,114 @@ std::vector<WMIC_NetworkAdapter> WMIC::NetworkAdapter() {
     if(pEnumerator) pEnumerator->Release();
 
     return set;
+}
+
+static bool isWindowsVersionGreaterThan1803() {
+    HMODULE hModule = GetModuleHandleW(L"ntdll.dll");
+    if(hModule) {
+        auto RtlGetVersion = reinterpret_cast<NTSTATUS(WINAPI *)(PRTL_OSVERSIONINFOW)>(GetProcAddress(hModule, "RtlGetVersion"));
+        if(RtlGetVersion) {
+            RTL_OSVERSIONINFOW osvi;
+            ZeroMemory(&osvi, sizeof(RTL_OSVERSIONINFOW));
+            osvi.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW);
+
+            if(RtlGetVersion(&osvi) == 0) {  // STATUS_SUCCESS = 0
+                // Windows 10 的主版本号是10
+                if(osvi.dwMajorVersion > 10) {
+                    return true;
+                } else if(osvi.dwMajorVersion == 10) {
+                    // 版本1803的构建号是17134
+                    return osvi.dwBuildNumber >= 17134;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// 尝试获取必要的特权
+static bool EnablePrivilege() {
+    HANDLE hToken;
+    TOKEN_PRIVILEGES tp;
+    LUID luid;
+
+    // 打开进程令牌
+    if(!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
+        std::println("无法打开进程令牌，错误码: {}", GetLastError());
+        return false;
+    }
+
+    // 查找SE_SYSTEM_ENVIRONMENT_NAME特权的LUID
+    if(!LookupPrivilegeValue(nullptr, SE_SYSTEM_ENVIRONMENT_NAME, &luid)) {
+        std::println("无法查找特权值，错误码: {}", GetLastError());
+        CloseHandle(hToken);
+        return false;
+    }
+
+    // 设置特权信息
+    tp.PrivilegeCount           = 1;
+    tp.Privileges[0].Luid       = luid;
+    tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    // 调整特权
+    if(!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr)) {
+        std::println("无法调整令牌特权，错误码: {}", GetLastError());
+        CloseHandle(hToken);
+        return false;
+    }
+
+    // 即使AdjustTokenPrivileges返回true，也要检查GetLastError()
+    DWORD error = GetLastError();
+    if(error != ERROR_SUCCESS) {
+        std::println("设置特权失败，错误码: {}", error);
+        CloseHandle(hToken);
+        return false;
+    }
+
+    CloseHandle(hToken);
+    return true;
+}
+
+static inline bool canFirmwareEnvironmentVariable() {
+    if(!isWindowsVersionGreaterThan1803()) return false;
+
+    if(!EnablePrivilege()) {
+        std::println("该功能需要以管理员权限运行");
+        return false;
+    }
+
+    return true;
+}
+
+// 便捷的辅助函数，用于指定UID创建变量名
+static std::string makeUefiVarName(uint32_t uid, const std::string &prefix = "WMIC_UID") {
+    // return std::format("{}_{:08X}", prefix, uid);
+    return prefix;
+}
+
+bool wmicUefiRead(uint32_t uid, void *data, int len) {
+    if(!canFirmwareEnvironmentVariable()) return false;
+
+    const auto key = makeUefiVarName(uid);
+    bool ret       = GetFirmwareEnvironmentVariableA(key.c_str(), "{00000000-0000-0000-0000-000000000000}", data, len);
+#ifdef _DEBUG
+    if(!ret) {
+        std::println("Error:{}", GetLastError());
+    }
+#endif
+    return ret;
+}
+
+bool wmicUefiWrite(uint32_t uid, void *data, int len) {
+    if(!canFirmwareEnvironmentVariable()) return false;
+
+    const auto key = makeUefiVarName(uid);
+    bool ret       = SetFirmwareEnvironmentVariableA(key.c_str(), "{00000000-0000-0000-0000-000000000000}", data, len);
+#ifdef _DEBUG
+    if(!ret) {
+        std::println("Error:{}", GetLastError());
+    }
+
+#endif
+    return ret;
 }
