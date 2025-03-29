@@ -53,7 +53,7 @@ int main() {
 
 硬件指纹(Hardware fingerprint) - 根据一系列的硬件特征信息生产一个唯一的指纹信息应用于 软件许可限制
 
-获取用户电脑唯一ID
+**获取用户电脑唯一ID**
 
 ```python
 # 例如使用网卡地址生成唯一ID
@@ -69,7 +69,8 @@ print("uid:", id)
 # uid: 331712171
 ```
 
-持久化
+**持久化**
+
 通过 UEFI Non-Volatile Random-Access Memory(NVRAM) 进行存储，断电不丢失信息。
 
 读取 uid 和 写入 uid，并写入用户自定义的 meta 信息(软件注册时间，软件到期时间)结构，实现 Software License。
