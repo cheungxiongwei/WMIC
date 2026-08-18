@@ -1,3 +1,5 @@
+
+
 # WMIC
 
 wmic 是一款获取PC电脑相关硬件信息的程序，使用 wmi com c++ 编写。
@@ -20,7 +22,7 @@ wmic 是一款获取PC电脑相关硬件信息的程序，使用 wmi com c++ 编
 
 ```c++
 #include <print>
-#include "WMIC.h"
+#include "wmic.h"
 
 int main() {
     system("COLOR 0A");
@@ -102,4 +104,3 @@ https://docs.microsoft.com/en-us/windows/win32/wmisdk/wmi-start-page
 ### 其他工具
 
 window系统可以使用系统自带的工具（ComputerHardwareIds.exe）获取 硬件id
-
