@@ -1,4 +1,4 @@
-#include "WMIC.h"
+﻿#include "WMIC.h"
 // windows
 #include <Wbemidl.h>
 #include <Windows.h>
@@ -686,6 +686,10 @@ std::vector<WMIC_NetworkAdapter> WMIC::NetworkAdapter() {
     return set;
 }
 
+// 判断当前系统是否为 Windows 10 1803（内部版本 17134）或更高版本。
+// 注意：函数名里的 GreaterThan 实际语义是“大于等于”。
+// 这里调用 ntdll 的 RtlGetVersion 而非 GetVersionEx，前者返回真实版本号，
+// 后者会被应用程序兼容性清单伪装成旧版本。
 static bool isWindowsVersionGreaterThan1803() {
     HMODULE hModule = GetModuleHandleW(L"ntdll.dll");
     if(hModule) {
@@ -695,12 +699,11 @@ static bool isWindowsVersionGreaterThan1803() {
             ZeroMemory(&osvi, sizeof(RTL_OSVERSIONINFOW));
             osvi.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW);
 
-            if(RtlGetVersion(&osvi) == 0) {  // STATUS_SUCCESS = 0
-                // Windows 10 的主版本号是10
+            if(RtlGetVersion(&osvi) == 0) {  // STATUS_SUCCESS
                 if(osvi.dwMajorVersion > 10) {
                     return true;
                 } else if(osvi.dwMajorVersion == 10) {
-                    // 版本1803的构建号是17134
+                    // 1803 对应的内部版本号为 17134
                     return osvi.dwBuildNumber >= 17134;
                 }
             }
@@ -709,38 +712,45 @@ static bool isWindowsVersionGreaterThan1803() {
     return false;
 }
 
-// 尝试获取必要的特权
-static bool EnablePrivilege() {
+// 为当前进程启用 SE_SYSTEM_ENVIRONMENT_NAME 特权。
+// 这里的“特权(privilege)”是 Windows 的一种权限机制：即便是管理员账户，
+// 进程默认也只以普通权限运行，某些敏感操作还需要单独“启用”对应特权。
+// 读写 UEFI 固件环境变量正属于此类操作，必须启用 SE_SYSTEM_ENVIRONMENT_NAME，
+// 因此本函数打开进程令牌，取出该特权的 LUID 并将其设置为已启用状态。
+// 另外该操作本身也要求进程以管理员身份运行，否则启用会失败。
+// 成功返回 true，失败返回 false 并打印错误码。
+static bool enablePrivilege() {
     HANDLE hToken;
     TOKEN_PRIVILEGES tp;
     LUID luid;
 
-    // 打开进程令牌
+    // 打开当前进程的令牌(token)，可以把它理解为进程的“权限清单”，
+    // 需要查询(QUERY)和调整(ADJUST_PRIVILEGES)该清单的权限。
     if(!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
         std::println("无法打开进程令牌，错误码: {}", GetLastError());
         return false;
     }
 
-    // 查找SE_SYSTEM_ENVIRONMENT_NAME特权的LUID
+    // 把特权名 SE_SYSTEM_ENVIRONMENT_NAME 翻译成系统内部使用的编号 LUID
     if(!LookupPrivilegeValue(nullptr, SE_SYSTEM_ENVIRONMENT_NAME, &luid)) {
         std::println("无法查找特权值，错误码: {}", GetLastError());
         CloseHandle(hToken);
         return false;
     }
 
-    // 设置特权信息
+    // 描述要启用的特权项
     tp.PrivilegeCount           = 1;
     tp.Privileges[0].Luid       = luid;
     tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-    // 调整特权
+    // 提交特权调整
     if(!AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), nullptr, nullptr)) {
         std::println("无法调整令牌特权，错误码: {}", GetLastError());
         CloseHandle(hToken);
         return false;
     }
 
-    // 即使AdjustTokenPrivileges返回true，也要检查GetLastError()
+    // AdjustTokenPrivileges 可能返回成功却未真正生效，需再检查 GetLastError
     DWORD error = GetLastError();
     if(error != ERROR_SUCCESS) {
         std::println("设置特权失败，错误码: {}", error);
@@ -752,10 +762,12 @@ static bool EnablePrivilege() {
     return true;
 }
 
-static inline bool canFirmwareEnvironmentVariable() {
+// 检查当前环境是否具备读写 UEFI 固件变量的条件：
+// 系统版本为 Windows 10 1803 或更高，且成功启用 SE_SYSTEM_ENVIRONMENT_NAME 特权。
+static bool canFirmwareEnvironmentVariable() {
     if(!isWindowsVersionGreaterThan1803()) return false;
 
-    if(!EnablePrivilege()) {
+    if(!enablePrivilege()) {
         std::println("该功能需要以管理员权限运行");
         return false;
     }
@@ -763,15 +775,25 @@ static inline bool canFirmwareEnvironmentVariable() {
     return true;
 }
 
-// 便捷的辅助函数，用于指定UID创建变量名
+// 由 UID 生成 UEFI 变量名，prefix 为变量名前缀。
+// 当前实现忽略 uid，始终返回 prefix；如需按 UID 区分变量，
+// 可启用下面的格式化写法（例如 WMIC_UID_00000001）。
 static std::string makeUefiVarName(uint32_t uid, const std::string &prefix = "WMIC_UID") {
     // return std::format("{}_{:08X}", prefix, uid);
     return prefix;
 }
 
+// 读取 UEFI 固件环境变量。
+// uid     : 变量标识，用于生成变量名（见 makeUefiVarName）。
+// data/len: 接收数据的缓冲区及其字节长度。
+// 成功返回 true；失败返回 false（Debug 下会打印 GetLastError）。
+// 注意：函数返回的是布尔值，而 MSDN 中 GetFirmwareEnvironmentVariableA 返回
+// 实际写入的字节数（0 表示失败），此处将其隐式转换为 true/false，仅用于成败判断。
 bool wmicUefiRead(uint32_t uid, void *data, int len) {
+    // 检查系统版本并启用所需特权，不满足直接返回失败
     if(!canFirmwareEnvironmentVariable()) return false;
 
+    // 生成变量名，GUID 全 0 表示使用全局变量命名空间
     const auto key = makeUefiVarName(uid);
     bool ret       = GetFirmwareEnvironmentVariableA(key.c_str(), "{00000000-0000-0000-0000-000000000000}", data, len);
 #ifdef _DEBUG
@@ -782,9 +804,17 @@ bool wmicUefiRead(uint32_t uid, void *data, int len) {
     return ret;
 }
 
+// 写入 UEFI 固件环境变量。
+// uid     : 变量标识，用于生成变量名（见 makeUefiVarName）。
+// data/len: 要写入的数据缓冲区及其字节长度。
+// 成功返回 true；失败返回 false（Debug 下会打印 GetLastError）。
+// 注意：同读取函数，SetFirmwareEnvironmentVariableA 实际返回写入的字节数，
+// 这里仅取其真假值表示写入是否成功。
 bool wmicUefiWrite(uint32_t uid, void *data, int len) {
+    // 检查系统版本并启用所需特权，不满足直接返回失败
     if(!canFirmwareEnvironmentVariable()) return false;
 
+    // 生成变量名，GUID 全 0 表示使用全局变量命名空间
     const auto key = makeUefiVarName(uid);
     bool ret       = SetFirmwareEnvironmentVariableA(key.c_str(), "{00000000-0000-0000-0000-000000000000}", data, len);
 #ifdef _DEBUG

@@ -1,5 +1,10 @@
-set(WMIC_HEADERS wmic.h)
-set(WMIC_SOURCES wmic.cpp)
+set(WMIC_HEADERS wmic.h smbios.h)
+set(WMIC_SOURCES wmic.cpp smbios.cpp)
+
+# 源码为 UTF-8，显式告知 MSVC，避免按 ANSI 代码页错误解析中文字面量
+if (MSVC)
+    add_compile_options(/utf-8)
+endif ()
 
 # 添加静态库
 add_library(wmic_lib STATIC ${WMIC_HEADERS} ${WMIC_SOURCES})

@@ -95,6 +95,39 @@ std::println("{:s}", wmicUefiWrite(uid, &data, sizeof(uid_meta_t)));
 
 https://docs.microsoft.com/en-us/windows/win32/wmisdk/wmi-start-page
 
+### SMBIOS
+
+除 WMI 外，`smbios.h` / `smbios.cpp` 还提供了一条不依赖 COM/WMI 的硬件信息通路，
+直接读取固件表（`GetSystemFirmwareTable('RSMB')`）并解析 SMBIOS 结构，
+同时采集 CPUID 指令结果。可用于硬件指纹与虚拟机判定。
+
+可获取：BIOS（Type 0）、系统（Type 1，含 UUID）、主板（Type 2）、机箱（Type 3）、
+处理器（Type 4）、内存条（Type 17），以及 CPUID 厂商串/品牌串。
+
+```c++
+#include <print>
+#include "smbios.h"
+
+int main() {
+    const auto smbios = smbiosRead();
+
+    std::println("SMBIOS {}.{}", smbios.majorVersion, smbios.minorVersion);
+    std::println("System: {} {} UUID={}",
+                 smbios.system.manufacturer, smbios.system.productName, smbios.system.uuid);
+    std::println("Baseboard: {} Serial={}",
+                 smbios.baseboard.product, smbios.baseboard.serialNumber);
+
+    // 硬件指纹（FNV-1a，只纳入换硬件才变且非空的字段）
+    std::println("Fingerprint: {}", smbiosFingerprintString(smbios));
+
+    // 虚拟机判定（CPUID 与 SMBIOS 两层交叉验证）
+    std::println("VirtualMachine: {}", smbiosIsVirtualMachine(smbios));
+    return 0;
+}
+```
+
+详细字段偏移、归一化规则、哈希算法与判定黑名单见 [docs/smbios_spec.md](docs/smbios_spec.md)。
+
 ### 编译
 
 仅支持 windows 版本，使用 C++23 or 更高即可编译。

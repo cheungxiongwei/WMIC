@@ -1,5 +1,6 @@
 #include <print>
 #include "wmic.h"
+#include "smbios.h"
 
 int main() {
     system("COLOR 0A");
@@ -33,6 +34,19 @@ int main() {
         // 填充数据
         data.uid = uid;
         std::println("{:s}", wmicUefiWrite(uid, &data, sizeof(uid_meta_t)));
+
+        // SMBIOS 固件表信息（纯 Win32 API，无 COM/WMI 依赖）
+        const auto smbios = smbiosRead();
+        std::println("SMBIOS {}.{}", smbios.majorVersion, smbios.minorVersion);
+        std::println("BIOS: {} {} ({})", smbios.bios.vendor, smbios.bios.version, smbios.bios.releaseDate);
+        std::println("System: {} {} UUID={}", smbios.system.manufacturer, smbios.system.productName, smbios.system.uuid);
+        std::println("Baseboard: {} {} Serial={}", smbios.baseboard.manufacturer, smbios.baseboard.product, smbios.baseboard.serialNumber);
+
+        // 硬件指纹与虚拟机判定
+        std::println("CPU: {} {}", smbios.cpu.vendor, smbios.cpu.brand);
+        std::println("Hypervisor: present={} vendor={}", smbios.cpu.hypervisorPresent, smbios.cpu.hypervisorVendor);
+        std::println("Fingerprint: {}", smbiosFingerprintString(smbios));
+        std::println("VirtualMachine: {}", smbiosIsVirtualMachine(smbios));
 
     } catch(const WMICException &e) {
         std::println("{}", e.what());
